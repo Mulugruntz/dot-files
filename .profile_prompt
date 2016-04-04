@@ -74,6 +74,25 @@ def sizeof_fmt(num, suffix='B'):
 
 END_HEREDOC
         )
+        
+        # We retrieve the IP address
+        local ip_v4=$(ip addr show | python -c "
+import sys, re
+re_head = re.compile(r'^\d+: (?P<name>.*?): .*$')
+re_ipv4 = re.compile(r'^\s*inet (?P<ipv4>192\.168\.\d+\.\d+(?:\/\d+)?) .*$')
+head = None
+for line in sys.stdin:
+    m_head = re_head.match(line)
+    if m_head is not None:
+        head = m_head.groupdict()['name']
+        continue
+    m_ipv4 = re_ipv4.match(line)
+    if m_ipv4 is not None:
+        ipv4 = m_ipv4.groupdict()['ipv4']
+        print '{}:{}'.format(head, ipv4)
+        break
+")
+
 
         # Make them human readable
         pmemt=$(echo "$PY_CALC 
@@ -85,10 +104,11 @@ sizeof_fmt($SWP_T)" | python)
         pswpf=$(echo "$PY_CALC 
 sizeof_fmt($SWP_F)" | python)
 
-        # Format memory, swap and time
+        # Format memory, swap, time and ip
         local MEM="${MEM_C}[Ram ${pmemf}/${pmemt}]$NO_COLOR"
         local SWP="${SWP_C}[Swap ${pswpf}/${pswpt}]$NO_COLOR"
         local TIM="${CYAN}[\t]$NO_COLOR"
+        local IP="${DARK_YELLOW}[${ip_v4}]$NO_COLOR"
 
         local TITLE='\[\e]0;\u@\h:\W\a\]'
 	if [ "$EXIT" != 0 ]; then
@@ -99,7 +119,7 @@ sizeof_fmt($SWP_F)" | python)
 	fi
 
         # Set the prompt
-	PS1="${TITLE}# $TIM $MEM $SWP $GREEN\u$NO_COLOR@\h $DARK_BLUE\w$NO_COLOR${ERR}${BR}$GREEN\$$NO_COLOR\n"
+	PS1="${TITLE}# $TIM $MEM $SWP $IP $GREEN\u$NO_COLOR@\h $DARK_BLUE\w$NO_COLOR${ERR}${BR}$GREEN\$$NO_COLOR\n"
 
 #	history -a
 #	history -c
